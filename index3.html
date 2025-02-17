@@ -155,7 +155,7 @@
 <body>
     <div class="header">
         <h1>Family Music Player</h1>
-        <p>Click any song to start playing, or press the Play button to start from the beginning</p>
+        <p>Music will start playing automatically when you open the page</p>
     </div>
 
     <div class="player-section">
@@ -199,7 +199,6 @@
                 this.currentIndex = -1;
                 this.shuffleMode = false;
                 this.shuffledIndices = [];
-                this.isFirstPlay = true;
                 
                 this.audioPlayer = document.getElementById('audioPlayer');
                 this.playPauseButton = document.getElementById('playPauseButton');
@@ -222,12 +221,9 @@
                     this.renderSongs();
                     this.enableControls();
                     
-                    // Instead of autoplaying, just show the first song as ready to play
+                    // Automatically start playing the first song
                     if (this.songs.length > 0) {
-                        this.currentIndex = 0;
-                        this.updateNowPlaying();
-                        this.updateNextSong();
-                        this.updateSongCards();
+                        this.playSong(0);
                     }
                 } catch (error) {
                     console.error('Error loading songs:', error);
@@ -306,24 +302,12 @@
                 this.currentIndex = index;
                 const song = this.songs[index];
                 this.audioPlayer.src = song.audioPath;
-                
-                // Play and handle any autoplay restrictions
-                const playPromise = this.audioPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        this.playPauseButton.textContent = 'Pause';
-                    }).catch(error => {
-                        // Autoplay was prevented
-                        this.playPauseButton.textContent = 'Play';
-                        console.log("Playback prevented. Click play to start music.");
-                    });
-                }
-                
+                this.audioPlayer.play();
                 this.updateNowPlaying();
                 this.updateNextSong();
                 this.updateSongCards();
+                this.playPauseButton.textContent = 'Pause';
                 this.enableControls();
-                this.isFirstPlay = false;
             }
 
             updateNowPlaying() {
@@ -333,30 +317,20 @@
                          style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
                     <h3>${song.title}</h3>
                     <p>by ${song.artist}</p>
-                    ${this.audioPlayer.paused ? '<p style="color: #666;">(Press Play to start)</p>' : ''}
                 `;
             }
 
             togglePlayPause() {
-                if (this.isFirstPlay && this.songs.length > 0) {
-                    // First time playing - start with first song
+                if (this.currentIndex === -1 && this.songs.length > 0) {
+                    // If no song is playing, start with the first song
                     this.playSong(0);
                 } else if (this.audioPlayer.paused) {
-                    // Resume paused song
-                    const playPromise = this.audioPlayer.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            this.playPauseButton.textContent = 'Pause';
-                        }).catch(error => {
-                            console.log("Playback prevented. Try again.");
-                        });
-                    }
+                    this.audioPlayer.play();
+                    this.playPauseButton.textContent = 'Pause';
                 } else {
-                    // Pause current song
                     this.audioPlayer.pause();
                     this.playPauseButton.textContent = 'Play';
                 }
-                this.updateNowPlaying();
             }
 
             playNext() {
