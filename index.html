@@ -382,8 +382,9 @@
             }
 
             playNext() {
-                // Don't move to next song if repeat is enabled
-                if (this.repeatMode) {
+                // Check if this was triggered by the song ending or by user clicking Next
+                if (this.repeatMode && event?.type === 'ended') {
+                    // Only repeat if the song ended naturally and repeat is on
                     this.audioPlayer.currentTime = 0;
                     this.audioPlayer.play().catch(error => {
                         console.log("Playback prevented. Try again.");
@@ -391,7 +392,7 @@
                     return;
                 }
                 
-                // Previous playNext logic remains the same
+                // Otherwise, go to next song regardless of repeat mode
                 const nextIndex = this.getNextIndex();
                 if (nextIndex !== -1) {
                     this.playSong(nextIndex);
@@ -446,7 +447,7 @@
             setupEventListeners() {
                 this.playPauseButton.onclick = () => this.togglePlayPause();
                 this.previousButton.onclick = () => this.playPrevious();
-                this.nextButton.onclick = () => this.playNext();
+                this.nextButton.onclick = (e) => this.playNext(e);
                 this.shuffleButton.onclick = () => this.toggleShuffle();
                 this.repeatButton.onclick = () => this.toggleRepeat();
 
@@ -455,7 +456,7 @@
                     this.audioPlayer.volume = e.target.value / 100;
                 };
                 
-                this.audioPlayer.onended = () => this.playNext();
+                this.audioPlayer.onended = (e) => this.playNext(e);
                 this.audioPlayer.ontimeupdate = () => this.updateProgress();
                 this.progressContainer.onclick = (e) => this.seekTo(e);
                 
