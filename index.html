@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Music Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            min-width: 120px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .now-playing {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .song-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .song-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .song-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .song-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .song-info {
+            text-align: center;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .progress-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            background: #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 5px;
+        }
+
+        .shuffle-button.active {
+            background: #2196F3;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Family Music Player</h1>
+        <p>Click any song to start playing</p>
+    </div>
+
+    <div class="now-playing">
+        <h2>Now Playing:</h2>
+        <div id="currentSong">No song selected</div>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="controls">
+        <button id="previousButton" disabled>Previous Song</button>
+        <button id="playPauseButton">Play</button>
+        <button id="nextButton" disabled>Next Song</button>
+        <button id="shuffleButton" class="shuffle-button">Shuffle: Off</button>
+    </div>
+
+    <div class="volume-control">
+        <span>Volume:</span>
+        <input type="range" id="volumeSlider" min="0" max="100" value="80">
+    </div>
+
+    <div class="song-list" id="songList">
+        <!-- Songs will be populated here -->
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        class MusicPlayer {
+            constructor() {
+                this.songs = [];
+                this.currentIndex = -1;
+                this.shuffleMode = false;
+                this.shuffledIndices = [];
+                
+                this.audioPlayer = document.getElementById('audioPlayer');
+                this.playPauseButton = document.getElementById('playPauseButton');
+                this.previousButton = document.getElementById('previousButton');
+                this.nextButton = document.getElementById('nextButton');
+                this.shuffleButton = document.getElementById('shuffleButton');
+                this.volumeSlider = document.getElementById('volumeSlider');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressContainer = document.getElementById('progressContainer');
+                
+                this.setupEventListeners();
+                this.loadSongs();
+            }
+
+            async loadSongs() {
+                try {
+                    const response = await fetch('Songs/manifest.json');
+                    const data = await response.json();
+                    this.songs = data;
+                    this.renderSongs();
+                    this.enableControls();
+                } catch (error) {
+                    console.error('Error loading songs:', error);
+                    document.getElementById('songList').innerHTML = 
+                        '<p style="color: red; text-align: center; width: 100%;">' +
+                        'Error loading songs. Please make sure the Songs folder exists with a manifest.json file.</p>';
+                }
+            }
+
+            renderSongs() {
+                const songList = document.getElementById('songList');
+                songList.innerHTML = '';
+                
+                this.songs.forEach((song, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'song-card';
+                    card.innerHTML = `
+                        <img src="${song.coverPath}" alt="Album cover for ${song.title}">
+                        <div class="song-info">
+                            <h3>${song.title}</h3>
+                            <p>${song.artist}</p>
+                        </div>
+                    `;
+                    card.onclick = () => this.playSong(index);
+                    songList.appendChild(card);
+                });
+            }
+
+            playSong(index) {
+                this.currentIndex = index;
+                const song = this.songs[index];
+                this.audioPlayer.src = song.audioPath;
+                this.audioPlayer.play();
+                this.updateNowPlaying();
+                this.playPauseButton.textContent = 'Pause';
+                this.enableControls();
+            }
+
+            updateNowPlaying() {
+                const song = this.songs[this.currentIndex];
+                document.getElementById('currentSong').innerHTML = `
+                    <h3>${song.title}</h3>
+                    <p>by ${song.artist}</p>
+                `;
+            }
+
+            togglePlayPause() {
+                if (this.audioPlayer.paused) {
+                    this.audioPlayer.play();
+                    this.playPauseButton.textContent = 'Pause';
+                } else {
+                    this.audioPlayer.pause();
+                    this.playPauseButton.textContent = 'Play';
+                }
+            }
+
+            playNext() {
+                if (this.shuffleMode) {
+                    this.playShuffledNext();
+                } else {
+                    const nextIndex = (this.currentIndex + 1) % this.songs.length;
+                    this.playSong(nextIndex);
+                }
+            }
+
+            playPrevious() {
+                if (this.shuffleMode) {
+                    this.playShuffledPrevious();
+                } else {
+                    const prevIndex = (this.currentIndex - 1 + this.songs.length) % this.songs.length;
+                    this.playSong(prevIndex);
+                }
+            }
+
+            toggleShuffle() {
+                this.shuffleMode = !this.shuffleMode;
+                this.shuffleButton.textContent = `Shuffle: ${this.shuffleMode ? 'On' : 'Off'}`;
+                this.shuffleButton.classList.toggle('active', this.shuffleMode);
+                
+                if (this.shuffleMode) {
+                    this.shuffledIndices = [...Array(this.songs.length).keys()];
+                    for (let i = this.shuffledIndices.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [this.shuffledIndices[i], this.shuffledIndices[j]] = 
+                        [this.shuffledIndices[j], this.shuffledIndices[i]];
+                    }
+                }
+            }
+
+            playShuffledNext() {
+                const currentShuffleIndex = this.shuffledIndices.indexOf(this.currentIndex);
+                const nextShuffleIndex = (currentShuffleIndex + 1) % this.songs.length;
+                this.playSong(this.shuffledIndices[nextShuffleIndex]);
+            }
+
+            playShuffledPrevious() {
+                const currentShuffleIndex = this.shuffledIndices.indexOf(this.currentIndex);
+                const prevShuffleIndex = (currentShuffleIndex - 1 + this.songs.length) % this.songs.length;
+                this.playSong(this.shuffledIndices[prevShuffleIndex]);
+            }
+
+            enableControls() {
+                this.previousButton.disabled = false;
+                this.nextButton.disabled = false;
+            }
+
+            updateProgress() {
+                const progress = (this.audioPlayer.currentTime / this.audioPlayer.duration) * 100;
+                this.progressBar.style.width = `${progress}%`;
+            }
+
+            seekTo(event) {
+                const rect = this.progressContainer.getBoundingClientRect();
+                const pos = (event.clientX - rect.left) / rect.width;
+                this.audioPlayer.currentTime = pos * this.audioPlayer.duration;
+            }
+
+            setupEventListeners() {
+                this.playPauseButton.onclick = () => this.togglePlayPause();
+                this.previousButton.onclick = () => this.playPrevious();
+                this.nextButton.onclick = () => this.playNext();
+                this.shuffleButton.onclick = () => this.toggleShuffle();
+                
+                this.volumeSlider.oninput = (e) => {
+                    this.audioPlayer.volume = e.target.value / 100;
+                };
+                
+                this.audioPlayer.onended = () => this.playNext();
+                this.audioPlayer.ontimeupdate = () => this.updateProgress();
+                this.progressContainer.onclick = (e) => this.seekTo(e);
+                
+                // Set initial volume
+                this.audioPlayer.volume = this.volumeSlider.value / 100;
+            }
+        }
+
+        // Initialize the music player when the page loads
+        window.onload = () => new MusicPlayer();
+    </script>
+</body>
+</html>
