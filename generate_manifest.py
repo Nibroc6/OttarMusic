@@ -54,8 +54,8 @@ def generate_manifest(songs_directory):
                 artist = 'Unknown Artist'
 
             # Create relative paths for web use
-            relative_audio_path = str(mp3_path.relative_to(songs_path))
-            relative_cover_path = str(cover_path.relative_to(songs_path))
+            relative_audio_path = "Songs\\"+str(mp3_path.relative_to(songs_path))
+            relative_cover_path = "Songs\\"+str(cover_path.relative_to(songs_path))
             
             # Add to manifest
             song_info = {
