@@ -65,10 +65,6 @@
             background: #cccccc;
             cursor: not-allowed;
         }
-		
-		.repeat-button.active {
-            background: #9C27B0;
-        }
 
         .song-list {
             display: grid;
@@ -153,7 +149,6 @@
                 width: 100%;
                 max-width: 200px;
             }
-			
         }
     </style>
 </head>
@@ -183,7 +178,6 @@
         <button id="previousButton" disabled>Previous Song</button>
         <button id="playPauseButton">Play</button>
         <button id="nextButton" disabled>Next Song</button>
-        <button id="repeatButton" class="repeat-button">Repeat just this song</button>
         <button id="shuffleButton" class="shuffle-button">Shuffle: Off</button>
     </div>
 
@@ -206,8 +200,6 @@
                 this.shuffleMode = false;
                 this.shuffledIndices = [];
                 this.isFirstPlay = true;
-                this.repeatMode = false;
-
                 
                 this.audioPlayer = document.getElementById('audioPlayer');
                 this.playPauseButton = document.getElementById('playPauseButton');
@@ -217,8 +209,6 @@
                 this.volumeSlider = document.getElementById('volumeSlider');
                 this.progressBar = document.getElementById('progressBar');
                 this.progressContainer = document.getElementById('progressContainer');
-				this.repeatButton = document.getElementById('repeatButton');
-
                 
                 this.setupEventListeners();
                 this.loadSongs();
@@ -369,29 +359,7 @@
                 this.updateNowPlaying();
             }
 
-            toggleRepeat() {
-                this.repeatMode = !this.repeatMode;
-                this.repeatButton.textContent = this.repeatMode ? 
-                    'Repeat This Song: On' : 'Repeat just this song';
-                this.repeatButton.classList.toggle('active', this.repeatMode);
-                
-                // Update aria-label for screen readers
-                this.repeatButton.setAttribute('aria-label', 
-                    this.repeatMode ? 'Currently repeating this song. Click to stop repeating.' : 
-                    'Click to repeat this song');
-            }
-
             playNext() {
-                // Don't move to next song if repeat is enabled
-                if (this.repeatMode) {
-                    this.audioPlayer.currentTime = 0;
-                    this.audioPlayer.play().catch(error => {
-                        console.log("Playback prevented. Try again.");
-                    });
-                    return;
-                }
-                
-                // Previous playNext logic remains the same
                 const nextIndex = this.getNextIndex();
                 if (nextIndex !== -1) {
                     this.playSong(nextIndex);
@@ -448,8 +416,6 @@
                 this.previousButton.onclick = () => this.playPrevious();
                 this.nextButton.onclick = () => this.playNext();
                 this.shuffleButton.onclick = () => this.toggleShuffle();
-                this.repeatButton.onclick = () => this.toggleRepeat();
-
                 
                 this.volumeSlider.oninput = (e) => {
                     this.audioPlayer.volume = e.target.value / 100;
